@@ -1,0 +1,1 @@
+/Users/sashimi/Dev/mind-track/src-tauri/migration/target/debug/libmigration.rlib: /Users/sashimi/Dev/mind-track/src-tauri/migration/src/lib.rs /Users/sashimi/Dev/mind-track/src-tauri/migration/src/m20250604_064814_create_table_daily_checkins.rs /Users/sashimi/Dev/mind-track/src-tauri/migration/src/m20250604_065127_create_table_daily_micro_tasks.rs

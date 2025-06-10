@@ -1,0 +1,10 @@
+/Users/sashimi/Dev/mind-track/src-tauri/migration/target/debug/deps/libsea_query_binder-243fc77696e3915e.rmeta: /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/lib.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx_sqlite.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/values.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx.rs
+
+/Users/sashimi/Dev/mind-track/src-tauri/migration/target/debug/deps/libsea_query_binder-243fc77696e3915e.rlib: /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/lib.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx_sqlite.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/values.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx.rs
+
+/Users/sashimi/Dev/mind-track/src-tauri/migration/target/debug/deps/sea_query_binder-243fc77696e3915e.d: /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/lib.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx_sqlite.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/values.rs /Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx.rs
+
+/Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/lib.rs:
+/Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx_sqlite.rs:
+/Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/values.rs:
+/Users/sashimi/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-query-binder-0.7.0/src/sqlx.rs:
