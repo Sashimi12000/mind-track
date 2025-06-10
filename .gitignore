@@ -8,3 +8,14 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*-journal
+*-wal
+*-shm
+
+# Specific database file if needed (though covered by *.sqlite)
+# mind_track.sqlite
