@@ -1,4 +1,6 @@
 use sea_orm_migration::{prelude::*, schema::*};
+// DailyCheckins の Iden を参照するために追加
+use super::m20250604_064814_create_table_daily_checkins::DailyCheckins;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -11,29 +13,28 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(MicroTasks::Table)
                     .if_not_exists()
-                    .col(pk_auto(MicroTasks::Id))
-                    .col(integer(MicroTasks::DailyCheckinId).null()) // 仕様書通りNULL許容
-                    .col(text(MicroTasks::TaskDescription).not_null())
-                    .col(text(MicroTasks::TaskMemo).null())
+                    .col(pk_auto(MicroTasks::LocalId)) // 主キーカラム名変更
+                    .col(string(MicroTasks::Uuid).not_null().unique_key()) // Uuid 追加
+                    .col(string(MicroTasks::DailyCheckinUuid).not_null()) // daily_checkin_uuid 追加 (型をstringに変更)
+                    .col(text(MicroTasks::TaskDescription).not_null()) // max 200 chars はDBレベルで制約しない
+                    .col(text(MicroTasks::TaskMemo).null()) // max 1000 chars はDBレベルで制約しない
                     .col(
                         integer(MicroTasks::IsCompleted)
                             .not_null()
                             .default(0),
                     )
-                    .col(timestamp(MicroTasks::CompletedAt).null())
-                    .col(
-                        timestamp(MicroTasks::CreatedAt)
-                            .not_null()
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(integer(MicroTasks::SortOrder).null()) // 初期リリースでは使用しないがカラムは用意
+                    .col(timestamp_with_time_zone(MicroTasks::CompletedAt).null()) // 型をtimestamp_with_time_zoneに変更
+                    .col(timestamp_with_time_zone(MicroTasks::CreatedAt).not_null()) // 型をtimestamp_with_time_zoneに変更
+                    .col(timestamp_with_time_zone(MicroTasks::UpdatedAt).not_null()) // UpdatedAt 追加
+                    .col(timestamp_with_time_zone(MicroTasks::DeletedAt).null())    // DeletedAt 追加
+                    .col(integer(MicroTasks::SortOrder).not_null()) // NOT NULL 制約追加
                     // 外部キー制約
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_micro_tasks_daily_checkin_id")
-                            .from(MicroTasks::Table, MicroTasks::DailyCheckinId)
-                            .to(DailyCheckins::Table, DailyCheckins::Id) // 前のマイグレーションで作成したテーブルを参照
-                            .on_delete(ForeignKeyAction::Cascade) // 親レコード削除時に子レコードも削除 (またはSetNullなど)
+                            .name("fk_micro_tasks_daily_checkin_uuid") // 制約名を変更
+                            .from(MicroTasks::Table, MicroTasks::DailyCheckinUuid)
+                            .to(DailyCheckins::Table, DailyCheckins::Uuid) // 参照先を DailyCheckins の Uuid に変更
+                            .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -51,20 +52,15 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum MicroTasks {
     Table,
-    Id,
-    DailyCheckinId,
+    LocalId,          // Id から変更
+    Uuid,             // 追加
+    DailyCheckinUuid, // DailyCheckinId から変更し、型もTEXT(string)に
     TaskDescription,
     TaskMemo,
     IsCompleted,
     CompletedAt,
     CreatedAt,
+    UpdatedAt,        // 追加
+    DeletedAt,        // 追加
     SortOrder,
-}
-
-// 外部キー制約のために DailyCheckins の Iden を参照できるようにする
-// 本来は別ファイルから import するか、共通の場所に定義するのが望ましい
-#[derive(DeriveIden)]
-enum DailyCheckins {
-    Table,
-    Id,
 }
