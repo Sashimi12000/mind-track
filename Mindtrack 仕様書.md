@@ -203,32 +203,92 @@
 * **API設計 (Tauri Commands)**:  
   * フロントエンドからの呼び出しは、すべてTauriの\#\[tauri::command\]アトリビュートを付けた非同期関数として定義します。  
 * **エラーハンドリング**:  
-  * thiserrorクレートを用いて、アプリケーション固有の独自エラー型 (AppError) を定義します。  
-  * AppErrorはserde::Serializeを実装し、フロントエンドにJSON形式で転送できるようにします。  
-  * 全てのTauriコマンドはResult\<T, AppError\>を返すことを規約とします。  
-  * AppErrorの実装例:  
-    use serde::Serialize;  
+  * アプリケーション固有の明確なエラー型として `AppError` を `thiserror` クレートを用いて定義します。これにより、エラーの種類に応じた具体的な処理や、フロントエンドへの情報提供が可能になります。
+  * `AppError` の各バリアントは、基本的に以下の情報を保持します。
+    * `user_message: String`: ユーザーインターフェースに表示するための、簡潔で分かりやすいメッセージ。
+    * `details: String` または `message: String`: 開発者向けのログやデバッグに使用する、より技術的で詳細な情報。
+    * `source: Option<Box<dyn std::error::Error + Send + Sync + 'static>>` または具体的なエラー型 (例: `std::io::Error`): エラーチェイニングを可能にし、根本原因を特定しやすくするための情報。
+    * その他、エラーの種類に応じて必要な追加情報（例: `Validation` エラーにおける `field: String`、`NotFound` エラーにおける `resource_type: String`, `resource_id: String` など）。
+  * アプリケーション内部の関数で、複数の異なるエラー型を扱う場合や、定型的なエラー伝播を簡潔に記述したい場合には `anyhow` クレートを利用します。`anyhow::Result<T>` や `anyhow::Error` を活用し、`?` 演算子による早期リターンを容易にします。
+  * フロントエンドにエラー情報を渡す際は、`AppError` を直接シリアライズするのではなく、必要な情報のみを含む `SerializableAppError`のような中間構造体を介して行います。これにより、ユーザーに不要な詳細情報が渡ることを防ぎます。`AppError` はこの中間構造体に変換するために `serde::Serialize` を手動で実装します。シリアライズされる情報には、エラーのカテゴリを示す `UserMessageKind`、ユーザー向けの `message`、そしてエラーの種類に応じた追加のコンテキスト（例: `field`、`resource_type`）が含まれます。
+  * 全てのTauriコマンドは`Result<T, AppError>`を返すことを規約とします。内部で `anyhow::Error` を使用した場合でも、コマンドの境界で `AppError` に変換します。これには、`AppError` に `From<anyhow::Error>` を実装するか、または `anyhow::Error` の情報を基に適切な `AppError` バリアントを生成する処理を記述します。例えば、`anyhow::Error` をラップする `AppError::InternalError { user_message: String, details: String }` のようなバリアントを定義し、`anyhow::Error` の内容を `details` として格納し、汎用的な `user_message` を設定する方法が考えられます。
+  * `AppError` の実装例 (現在の `error.rs` の構造を反映):
+    ```rust
+    use serde::Serialize; // Serialize は AppError 自体の実装ではなく、SerializableAppError で使用
     use thiserror::Error;
 
-    \#\[derive(Debug, Error, Serialize)\]  
-    pub enum AppError {  
-        \#\[error("データベースエラー: {0}")\]  
-        DatabaseError(String),
-
-        \#\[error("入力内容が不正です: {0}")\]  
-        ValidationError(String),
-
-        \#\[error("予期せぬエラーが発生しました")\]  
-        UnexpectedError,  
+    // ユーザーに提示するエラーメッセージの分類
+    #[derive(Debug, Serialize, Clone, PartialEq)] // Serialize は UserMessageKind に直接適用
+    pub enum UserMessageKind {
+        Database,
+        Validation,
+        Io,
+        NotFound,
+        // ... 他のカテゴリ
+        Unexpected,
     }
+
+    #[derive(Debug, Error)]
+    pub enum AppError {
+        #[error("Database Error: {details}")]
+        Database {
+            user_message: String,
+            details: String,
+            source: Option<Box<dyn std::error::Error + Send + Sync + 'static>>,
+        },
+
+        #[error("Validation Error on field '{field}': {message}")]
+        Validation {
+            user_message: String,
+            field: String,
+            message: String, // 開発者向け詳細
+        },
+
+        #[error("I/O Error: {details}")]
+        Io {
+            user_message: String,
+            details: String,
+            #[from] // std::io::Error からの自動変換の例
+            source: std::io::Error,
+        },
+
+        #[error("Resource Not Found: Type='{resource_type}', ID='{resource_id}'. Details: {details}")]
+        NotFound {
+            user_message: String,
+            resource_type: String,
+            resource_id: String,
+            details: String,
+        },
+        
+        // anyhow::Error から変換する場合のバリアント例
+        // #[error("Internal Server Error: {details}")]
+        // InternalError {
+        //     user_message: String, // 固定的なユーザーメッセージ
+        //     details: String,      // anyhow::Error.to_string() の内容
+        // }
+
+        #[error("Unexpected Error: {details}")]
+        Unexpected {
+            user_message: String,
+            details: String,
+            source: Option<Box<dyn std::error::Error + Send + Sync + 'static>>,
+        },
+        // ... 他のエラーバリアント
+    }
+
+    // AppError は Serialize を手動実装し、SerializableAppError を経由して情報を制御
+    // (SerializableAppError の定義と Serialize の実装は error.rs を参照)
+    ```
+  * 各種外部クレートのエラー型 (例: `sea_orm::DbErr`, `uuid::Error`, `serde_json::Error`) から `AppError` への変換は `From` トレイトを実装することで行い、その際に適切な `user_message` と `details` を設定します。
 
 * **データベース操作**:  
   * sea-ormを全面的に採用します。  
   * **マイグレーション**: アプリケーション起動時に、sea-orm-migrationを用いて未適用のマイグレーションを自動で実行する処理を組み込みます。最初のマイグレーションファイルには、セクション6.1および6.2で定義されたテーブルと制約を作成するSQLを記述します。  
 * **主要なCrateの役割**:  
-  * thiserror: 独自エラー型の定義に使用。  
-  * uuid: uuidカラムのグローバル一意ID生成に使用。  
-  * chrono: タイムスタンプの生成に使用。
+  * `thiserror`: 独自エラー型 (`AppError` など) の定義に使用。
+  * `anyhow`: アプリケーション内部での柔軟なエラーハンドリング、特に複数のエラー型を統一的に扱う場合やエラーコンテキストの追加に使用。
+  * `uuid`: uuidカラムのグローバル一意ID生成に使用。  
+  * `chrono`: タイムスタンプの生成に使用。
 
 ### **11.2. フロントエンド (SvelteKit) 方針**
 
